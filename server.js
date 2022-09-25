@@ -226,15 +226,7 @@ const addNewRole =  () => {
 const addNewEmployee = () => {
 
   connection.query('SELECT * from role', (err, res) => {
-    const roles = res.map(({ id, title }) => ({ name: title, value: id }))
-    console.log(roles)
-  
- 
-  // connection.query("SELECT * FROM employee", (err, res) => {
-  //   const managers = res.map(({ id, first_name, last_name }) => ({ name: first_name + " "+ last_name, value: id }));
-  //   console.log(managers)
-  // })
- 
+    const roles = res.map(({ id, title }) => ({ value: id, name: title }))    
   
     inquirer.prompt([
     {
@@ -265,27 +257,38 @@ const addNewEmployee = () => {
     },
     {
       type: 'list', 
-      name: 'roleID',
+      name: 'empRole',
       message: "Select the role of this employee",
       choices: roles      
-    },
-    {
-      type: 'list', 
-      name: 'mgrID',
-      message: "Select the manager of this employee",
-      choices: 1
-    }
-    ]).then(answer => {   
+    },  
+    ]).then(answer => {
+      const parameters = [answer.fName, answer.lName, answer.empRole]
 
-      connection.query("INSERT INTO employee SET ?", {
-        first_name: answer.fName,
-        last_name: answer.lName,
-        role_id: (answer.roleID),
-        manager_id: (answer.mgrID)
-    })
-      console.log((`${answer.fName} ${answer.lName} was added successfully.`));
-      viewEmployees();
+      connection.query('SELECT * FROM employee', (err, res) => {
+
+        const managers = res.map(({ id, first_name, last_name }) => ({ name: first_name + " "+ last_name, value: id }));
+       
+        inquirer.prompt([
+          {
+            type: 'list',
+            name: 'manager',
+            message: "Who is the employee's manager?",
+            choices: managers
+          }
+        ]).then(mgrChoice => {
+          const manager = mgrChoice.manager;
+          parameters.push(manager);
+
+          const sqlEmp = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)';
+
+          connection.query(sqlEmp, parameters, (err, res) => {
+            if (err) throw err;
+            viewEmployees();
+        })
+        })
+      })
+      
     });
-
   }) 
-}
+};
+
