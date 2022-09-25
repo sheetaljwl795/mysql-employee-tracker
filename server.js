@@ -118,7 +118,7 @@ const viewRoles = () => {
     initalPrompt();
   });
 };
-
+// View all Employee
 const viewEmployees = () => {
   console.log('Employee View');
 
@@ -131,7 +131,7 @@ const viewEmployees = () => {
     initalPrompt();
   });    
 };
-
+// Add new department
 const addNewDepartment = () => {
   
   inquirer.prompt([
@@ -148,13 +148,13 @@ const addNewDepartment = () => {
         }
       }
     }
-  ]).then(answwer => {
+  ]).then(answer => {
   
     var sql = 'INSERT INTO department (name) VALUES (?)';
   
-    connection.query(sql, answwer.addDepartment, function(err, res) {
+    connection.query(sql, answer.addDepartment, function(err, res) {
     if (err) throw err;
-    console.log(answwer.addDepartment + "was added as new deparment.");
+    console.log(answer.addDepartment + "was added as new deparment.");
     console.table('All Departments');
     viewDepartments();
     initalPrompt();
@@ -162,13 +162,60 @@ const addNewDepartment = () => {
   });
 };
 
+// Add new Role
+const addNewRole =  () => {   
+     
+    const departments = connection.query("SELECT id, name FROM department");
+    
+    const depts = departments.map(({ id, name }) => ({ value: id, name: name })); 
 
+  
+  inquirer.prompt([
+    {
+      type: 'input', 
+      name: 'role',
+      message: "enter new role",
+      validate: role => {
+        if (role) {
+            return true;
+        } else {
+            console.log('please enter role which you wants to add');
+            return false;
+        }
+      }
+    },  
+ 
+    {
+      type: 'input', 
+      name: 'salary',
+      message: "What is the salary for this role?",
+      validate: salary => {
+        if (salary) {
+            return true;
+        } else {
+            console.log('please enter salary for this role');
+            return false;
+        }
+      }
+    },
 
+    {
+      type: 'list', 
+      name: 'depatmentId',
+      message: "What deparment id is asscoiated with this role?",
+      choices: depts    
+    }
 
-
-
-
-        
-            
-            
-            
+  ]).then(answer => {
+    var params = [answer.role, answer.salary, answer.depatmentId];
+  
+    var sql = 'INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)';
+  
+    connection.query(sql, params, function(err, res) {
+    if (err) throw err;
+    console.log(`Added ${answer.role} to roles!`);
+    viewRoles();
+    initalPrompt();
+  });
+  });
+};
