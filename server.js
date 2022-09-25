@@ -93,6 +93,7 @@ const initalPrompt = () => {
     })  
 };
 
+// View all Departmenrs
 const viewDepartments = () => {
   console.log('Department View');
 
@@ -106,6 +107,7 @@ const viewDepartments = () => {
   });    
 };
 
+// View all Roles
 const viewRoles = () => {
   console.log('Roles View');
 
@@ -113,11 +115,12 @@ const viewRoles = () => {
   
   connection.query(sql, function(err, res) {
     if (err) throw err;
-    console.log(res.length + ' total Roles'); 
+    // console.log(res.length + ' total Roles'); 
     console.table(res);
     initalPrompt();
   });
 };
+
 // View all Employee
 const viewEmployees = () => {
   console.log('Employee View');
@@ -163,28 +166,31 @@ const addNewDepartment = () => {
 };
 
 // Add new Role
-const addNewRole =  () => {   
-     
-    const departments = connection.query("SELECT id, name FROM department");
-    
-    const depts = departments.map(({ id, name }) => ({ value: id, name: name })); 
+const addNewRole =  () => {
 
-  
-  inquirer.prompt([
+  const addRole = "SELECT  id, name FROM department";
+
+  connection.query(addRole, (err, res) => {
+    if (err) throw err;
+
+    // console.log(res);
+    const dept = res.map(choice => choice.name);
+    // console.log(dept);
+
+    inquirer.prompt([
     {
       type: 'input', 
       name: 'role',
-      message: "enter new role",
+      message: "Enter new role:",
       validate: role => {
         if (role) {
             return true;
         } else {
-            console.log('please enter role which you wants to add');
+            console.log('Please enter role which you wants to add');
             return false;
         }
       }
-    },  
- 
+    }, 
     {
       type: 'input', 
       name: 'salary',
@@ -193,29 +199,93 @@ const addNewRole =  () => {
         if (salary) {
             return true;
         } else {
-            console.log('please enter salary for this role');
+            console.log('Please enter salary for this role');
             return false;
         }
       }
     },
-
     {
       type: 'list', 
-      name: 'depatmentId',
-      message: "What deparment id is asscoiated with this role?",
-      choices: depts    
+      name: 'dept',
+      message: "Select the Department for this new role:",
+      choices: dept    
     }
+    ]).then(answer => {   
+    const sql = `INSERT INTO role(title, salary, department_id) VALUES ("${answer.role}", "${answer.salary}", (SELECT id FROM department WHERE name = "${answer.dept}"));`
 
-  ]).then(answer => {
-    var params = [answer.role, answer.salary, answer.depatmentId];
-  
-    var sql = 'INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)';
-  
-    connection.query(sql, params, function(err, res) {
-    if (err) throw err;
-    console.log(`Added ${answer.role} to roles!`);
-    viewRoles();
-    initalPrompt();
+    connection.query(sql, function(err, res) {
+      if (err) throw err;
+      console.log('Added ' + answer.role + ' to roles!');
+      viewRoles();
+    });
   });
-  });
+});
 };
+
+// Add an employee
+const addNewEmployee = () => {
+
+  connection.query('SELECT * from role', (err, res) => {
+    const roles = res.map(({ id, title }) => ({ name: title, value: id }))
+    console.log(roles)
+  
+ 
+  // connection.query("SELECT * FROM employee", (err, res) => {
+  //   const managers = res.map(({ id, first_name, last_name }) => ({ name: first_name + " "+ last_name, value: id }));
+  //   console.log(managers)
+  // })
+ 
+  
+    inquirer.prompt([
+    {
+      type: 'input', 
+      name: 'fName',
+      message: "Enter First Name:",
+      validate: fName => {
+        if (fName) {
+            return true;
+        } else {
+            console.log('Please enter firt name');
+            return false;
+        }
+      }
+    }, 
+    {
+      type: 'input', 
+      name: 'lName',
+      message: "Enter Last Name:",
+      validate: lName => {
+        if (lName) {
+            return true;
+        } else {
+            console.log('Please enter last name');
+            return false;
+        }
+      }
+    },
+    {
+      type: 'list', 
+      name: 'roleID',
+      message: "Select the role of this employee",
+      choices: roles      
+    },
+    {
+      type: 'list', 
+      name: 'mgrID',
+      message: "Select the manager of this employee",
+      choices: 1
+    }
+    ]).then(answer => {   
+
+      connection.query("INSERT INTO employee SET ?", {
+        first_name: answer.fName,
+        last_name: answer.lName,
+        role_id: (answer.roleID),
+        manager_id: (answer.mgrID)
+    })
+      console.log((`${answer.fName} ${answer.lName} was added successfully.`));
+      viewEmployees();
+    });
+
+  }) 
+}
