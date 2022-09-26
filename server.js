@@ -32,13 +32,6 @@ const initalPrompt = () => {
               "Add a role",
               "Add an employee",           
               "Update role for an employee",
-              "Update employee's manager",
-              "View employees by manager",
-              "View employees by department",
-              "Delete a department",
-              "Delete a role",
-              "Delete an employee",
-              "View the total utilized budget of a department",
               "Quit"]
     }]). then((response) => {
       switch (response.action) {
@@ -63,29 +56,8 @@ const initalPrompt = () => {
         case "Update role for an employee":
           updateRole();
           break;
-        case "Update employee's manager":
-          updateManager();
-          break;
-        case "View employees by manager":
-          viewEmployeeByManager();
-          break;
-        case "View employees by department":
-          viewEmployeeByDepartment();
-            break;
-        case "Delete a department":
-          deleteDepartment();
-          break;
-        case "Delete a role":
-          deleteRole();
-          break;
-        case "Delete an employee":
-          deleteEmployee();
-          break;
-        case "View the total utilized budget of a department":
-          viewBudget();
-          break;
         case "Quit":
-          exit();
+          connection.end();
           break;        
         default:
           break;
@@ -173,9 +145,7 @@ const addNewRole =  () => {
   connection.query(addRole, (err, res) => {
     if (err) throw err;
 
-    // console.log(res);
-    const dept = res.map(choice => choice.name);
-    // console.log(dept);
+    const dept = res.map(({ id, name }) => ({ value: id, name: name }));
 
     inquirer.prompt([
     {
@@ -210,10 +180,13 @@ const addNewRole =  () => {
       message: "Select the Department for this new role:",
       choices: dept    
     }
-    ]).then(answer => {   
-    const sql = `INSERT INTO role(title, salary, department_id) VALUES ("${answer.role}", "${answer.salary}", (SELECT id FROM department WHERE name = "${answer.dept}"));`
-
-    connection.query(sql, function(err, res) {
+    ]).then(answer => { 
+    
+    const inputpara = [answer.role, answer.salary, answer.dept]  
+  
+    const sql = `INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?);`
+    
+    connection.query(sql, inputpara, (err, res) => {
       if (err) throw err;
       console.log('Added ' + answer.role + ' to roles!');
       viewRoles();
@@ -262,7 +235,7 @@ const addNewEmployee = () => {
       choices: roles      
     },  
     ]).then(answer => {
-      const parameters = [answer.fName, answer.lName, answer.empRole]
+      const inputData = [answer.fName, answer.lName, answer.empRole]
 
       connection.query('SELECT * FROM employee', (err, res) => {
 
@@ -277,13 +250,71 @@ const addNewEmployee = () => {
           }
         ]).then(mgrChoice => {
           const manager = mgrChoice.manager;
-          parameters.push(manager);
+          inputData.push(manager);
 
           const sqlEmp = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)';
 
-          connection.query(sqlEmp, parameters, (err, res) => {
+          connection.query(sqlEmp, inputData, (err, res) => {
             if (err) throw err;
             viewEmployees();
+        })
+        })
+      })
+      
+    });
+  }) 
+};
+
+// Update Employee Role
+const updateRole = () => {
+
+  const sql = 'SELECT * from employee';
+
+  connection.query(sql, (err, res) => {
+    if (err) throw err;
+
+    const employees = res.map(({ id, first_name, last_name }) => ({ name: first_name + " "+ last_name, value: id }));
+    console.log(employees);
+
+    inquirer.prompt([
+      {
+        type :'list',
+        name:'name',
+        message: "Which employee's role you want update?",
+        choices: employees
+      }
+    ]).then(answer=> {
+     
+      const inputEmp= [answer.name];
+      const sqlRole = `SELECT * from role`;
+
+      connection.query(sqlRole, (err, res) => {
+      if (err) throw err;
+      const roles = res.map(({ id, title }) => ({ name: title, value: id }));      
+       
+        inquirer.prompt ([
+        {
+          type: 'list',
+          name: 'role',
+          message: "What is the new role of the employee?",
+          choices: roles
+        }
+      ]).then(roleChoice => {
+          const role = roleChoice.role;
+          inputEmp.push(role);
+          // console.log(inputEmp)
+
+
+          passingInput = inputEmp.reverse();
+          
+          // console.log(passingInput);
+           
+          const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
+
+          connection.query(sql, passingInput, (err, result) => {
+            if (err) throw err;
+          console.log("Employee role has been updated!");        
+          viewEmployees();
         })
         })
       })
