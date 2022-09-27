@@ -188,7 +188,7 @@ const addNewRole =  () => {
     
     connection.query(sql, inputpara, (err, res) => {
       if (err) throw err;
-      //console.log('Added ' + answer.role + ' to roles!');
+      console.log('Added ' + answer.role + ' to roles!');
       viewRoles();
     });
   });
